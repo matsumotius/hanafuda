@@ -60,6 +60,8 @@
             $(that.drugging.target).css('top', e.pageY);
             $(that.drugging.target).css('left', e.pageX);
             apply_suggestion();
+            var drugging_index = $(that.list).index(that.drugging.target);
+            that.fire('drug', that.drugging.target, drugging_index);
         });
         $(this.target).find('li').live('mouseup', function(e){
             if(that.drugging == null) return;
@@ -72,6 +74,7 @@
             Util.foreach(that.list, function(el, index){
                 $(that.target).append((drugging_index !== index)? el : that.drugging.clone);
             });
+            that.fire('drop', that.drugging.target, drugging_index);
             that.reset();
         });
         var apply_suggestion = function(){
@@ -94,18 +97,17 @@
                 $(last_el).after(suggesting_target);
                 that.suggesting = { target : suggesting_target, index : last_index };
             }
-        }
+        };
+    };
+    Hanafuda.prototype.fire = function(ev, target, index){
+        if(false === (ev in this.events)) return;
+        var ev_array = this.events[ev];
+        if(ev_array.length <= 0) return;
+        for(var i=0;i<ev_array.length;i++) ev_array[i]({ target : target, index : index });
     };
     Hanafuda.prototype.on = function(ev, callback){
         if(false === (ev in this.events)) return;
-        this.evnets[ev].push(callback);
-    };
-    Hanafuda.prototype.add = function(el){
-        return {
-            to : function(index) {
-                // append to DOM     
-            }
-        };
+        this.events[ev].push(callback);
     };
     Hanafuda.prototype.refresh = function(){
         this.list = $(this.target).find('li');

@@ -1,14 +1,17 @@
 <html>
     <head>
         <title>hanafuda / demo</title>
-        <script type='text/javascript' src='./jquery-1.6.2.min.js'></script>
-        <script type='text/javascript' src='./hanafuda.js'></script>
+        <script type='text/javascript' src='../jquery-1.6.2.min.js'></script>
+        <script type='text/javascript' src='../hanafuda.js'></script>
         <script type='text/javascript'>
         <!--
         $(function(){
             $('#list').find('li').css('cursor', 'pointer');
             $('#list').find('li').css('height', '50px');
-            $('#list').hanafuda();
+            var list = $('#list').hanafuda();
+            list.on('drop', function(obj){
+                $('#log').text('dropped to index: '+obj.index);
+            });
         });
         -->
         </script>
@@ -21,5 +24,6 @@
         <li>c</li>
         <li>d</li>
       </ul>
+      <div id='log' />
     </body>
 </html>
