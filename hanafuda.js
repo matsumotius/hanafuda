@@ -1,125 +1,150 @@
 // todo: next, prev
 (function($){
-    var Util = {
-        foreach : function(_array, callback){
-            for(var i=0;i<_array.length;i++){
-                callback(_array[i], i);
-            }
-        },
-        swap : function(_array, a, b){
-            var tmp = _array[a];
-            _array[a] = _array[b];
-            _array[b] = tmp;
-            return _array;
-        },
-        'Number' : function(value){
-            return {
-                is_between : function(a, b){ return a <= value && value <= b; }
-            };
-        }
+    var HanafudaManager = function(){
+        
     };
-    var generate_suggestion = function(css){
-        var obj = $('<li>').css('list-style', 'none');
-        for(var key in css) obj.css(key, css[key]);
-        return obj;
+    var manager = new HanafudaManager();
+
+    var HanafudaView = function(_parent){
+        this.__parent = _parent;
     };
-    var apply_unselectable = function(target){
+    HanafudaView.prototype.make_unselectable = function(_target){
+        var target = $(_target).find('li');
         target.css('user-select', 'none'); // CSS3
         target.css('-webkit-user-select', 'none'); // webkit
         target.css('-moz-user-select', 'none'); // firefox
         target.css('-khtml-user-select', 'none'); // safari
         target.attr('unselectable', 'on'); // IE
     };
+    HanafudaView.prototype.make_drugging = function(_target, _list){
+        var target = $(_target), list = $(_list);
+        target.css('position', 'absolute');
+        target.css('z-index', '3');
+        target.css('cursor', 'move');
+        $('body').css('cursor', 'move');
+        list.find('li').css('cursor', 'move');
+    };
+    HanafudaView.prototype.reset = function(target){
+        $('body').css('cursor', 'auto');
+        $(target).find('li').css('z-index', '1');
+        $(target).find('li').css('cursor', 'pointer');
+    };
+    HanafudaView.prototype.move = function(target, x, y){
+        $(target).css('left', x);
+        $(target).css('top', y);
+    };
+    HanafudaView.prototype.generate_suggestion = function(css){
+        var obj = $('<li>').css('list-style', 'none');
+        for(var key in css) obj.css(key, css[key]);
+        return obj;
+    };
+
+    var HanafudaEvent = function(_parent){
+        this.__parent = _parent;
+        this.list = {};
+        this.name_list = ['drug', 'move', 'drop'];
+    };
+    HanafudaEvent.prototype.add = function(name, callback){
+        if(this.name_list.indexOf(name) === -1) return;
+        (name in this.list) ? this.list[name].push(callback) : this.list[name] = [callback];
+    };
+    HanafudaEvent.prototype.fire = function(name){
+        if(this.name_list.indexOf(name) === -1) return;
+        if(false === (name in this.list)) return;
+        $.each(this.list[name], function(index, callback){ callback(); });
+    };
+
     var Hanafuda = function(_target, _options){
-        this.events = { 'drop' : [], 'drug' : [] };
         this.target = _target;
-        apply_unselectable($(this.target).find('li'));
         this.options = _options;
         this.list = $(this.target).find('li');
         this.list_clone = $(this.list).clone();
-        this.list_unselected = [];
-        this.drugging = null;
+        this.list_stack = [];
+        this.view = new HanafudaView(this);
+        this.events = new HanafudaEvent(this);
+        this.is_drugging = false;
+        this.drugging = {};
         this.suggesting = { target : null, index : -1 };
 
+        this.view.make_unselectable(this.list);
         var that = this;
         $(this.target).find('li').live('mousedown', function(e){
-            if(that.drugging !== null) return;
-            var drugging_index = $(that.target).find('li').index(this);
-            var drugging_clone = $(this).clone();
-            $(that.list).css('cursor', 'move');
-            $(this).css('position', 'absolute');
-            $(this).css('z-index', '3');
-            Util.foreach(that.list, function(el, index){
-                if(drugging_index != index) that.list_unselected.push(el);
-            });
-            that.drugging = { target : this, index : drugging_index, clone : drugging_clone };
-            apply_suggestion();
+            that.grab(this, e);
         });
         $('body').live('mousemove', function(e){
-            if(that.drugging == null) return;
-            $(that.drugging.target).css('top', e.pageY);
-            $(that.drugging.target).css('left', e.pageX);
-            apply_suggestion();
-            var drugging_index = $(that.list).index(that.drugging.target);
-            that.fire('drug', that.drugging.target, drugging_index);
+            that.move(this, e);
         });
         $(this.target).find('li').live('mouseup', function(e){
-            if(that.drugging == null) return;
-            $('body').css('cursor', 'auto');
-            $(that.target).find('li').css('cursor', 'pointer');
-            $(this).css('z-index', '1');
-            that.list.sort(function(a, b){ return $(a).offset().top - $(b).offset().top; });
-            var drugging_index = $(that.list).index(that.drugging.target);
-            $(that.target).find('li').remove();
-            Util.foreach(that.list, function(el, index){
-                $(that.target).append((drugging_index !== index)? el : that.drugging.clone);
-            });
-            that.fire('drop', that.drugging.target, drugging_index);
-            that.reset();
+            that.release(this, e);
         });
-        var apply_suggestion = function(){
-            var offset = $(that.drugging.target).offset();
-            var height = $(that.drugging.target).height();
-            var last_el = that.list_unselected[that.list_unselected.length - 1];
-            var last_index = that.list_unselected.length - 1;
-            var suggesting_target = generate_suggestion({ height : height });
-            Util.foreach(that.list_unselected, function(el, index) {
-                if(Util.Number($(el).offset().top).is_between(offset.top, offset.top + height)){
-                    if(that.suggesting.index == index) return;
-                    if(that.suggesting.target !== null) that.suggesting.target.remove();
-                    $(that.list_unselected[index]).before(suggesting_target);
-                    that.suggesting = { target : suggesting_target, index : index };
-                }
-            });
-            if(Util.Number($(last_el).offset().top + $(last_el).height()).is_between(offset.top, offset.top + height)){
-                if(that.suggesting.index !== last_index) return;
-                if(that.suggesting.target !== null) that.suggesting.target.remove();
-                $(last_el).after(suggesting_target);
-                that.suggesting = { target : suggesting_target, index : last_index };
-            }
+    };
+    Hanafuda.prototype.on = function(name, callback){
+        this.events.add(name, callback);
+    };
+    Hanafuda.prototype.grab = function(_target, e){
+        if(this.is_drugging) return;
+        this.drugging = { 
+            target : _target, 
+            index : $(this.list).index(_target), 
+            clone : $(_target).clone()
         };
+        var that = this;
+        $.each($(this.target).find('li'), function(index, obj){
+            if(that.drugging.index !== index) that.list_stack.push(obj);
+        });
+        this.view.make_drugging(_target, this.target);
+        this.suggest();
+        this.is_drugging = true;
     };
-    Hanafuda.prototype.fire = function(ev, target, index){
-        if(false === (ev in this.events)) return;
-        var ev_array = this.events[ev];
-        if(ev_array.length <= 0) return;
-        for(var i=0;i<ev_array.length;i++) ev_array[i]({ target : target, index : index });
+    Hanafuda.prototype.move = function(target, e){
+        if(this.is_drugging == false) return;
+        this.view.move(this.drugging.target, e.pageX, e.pageY);
+        this.suggest();
     };
-    Hanafuda.prototype.on = function(ev, callback){
-        if(false === (ev in this.events)) return;
-        this.events[ev].push(callback);
+    Hanafuda.prototype.release = function(target, e){
+        if(this.is_drugging == false) return;
+        this.view.reset(this.target);
+        this.list.sort(function(a, b){ return $(a).offset().top - $(b).offset().top; });
+        var drugging_index = $(this.list).index(this.drugging.target);
+        $(this.target).find('li').remove();
+        var that = this;
+        $.each(this.list, function(index, obj){
+            $(that.target).append((drugging_index !== index)? obj : that.drugging.clone);
+        });
+        this.reset();
     };
-    Hanafuda.prototype.refresh = function(){
+    Hanafuda.prototype.suggest = function(){
+        var offset = $(this.drugging.target).offset();
+        var height = $(this.drugging.target).height();
+        var last_obj = this.list_stack[this.list_stack.length - 1];
+        var last_index = this.list_stack.length - 1;
+        var suggesting_target = this.view.generate_suggestion({ height : height });
+        var that = this;
+        $.each(that.list_stack, function(index, obj) {
+            if($(obj).offset().top > offset.top && 
+               $(obj).offset().top < offset.top + height){
+                if(that.suggesting.index == index) return;
+                if(that.suggesting.target !== null) that.suggesting.target.remove();
+                $(that.list_stack[index]).before(suggesting_target);
+                that.suggesting = { target : suggesting_target, index : index };
+            }
+        });
+        if($(last_obj).offset().top + $(last_obj).height() > offset.top && 
+           $(last_obj).offset().top + $(last_obj).height() < offset.top + height){
+            if(this.suggesting.index !== last_index) return;
+            if(this.suggesting.target !== null) this.suggesting.target.remove();
+            $(last_obj).after(suggesting_target);
+            this.suggesting = { target : suggesting_target, index : last_index };
+        }
+    };
+    Hanafuda.prototype.reset_list = function(){
         this.list = $(this.target).find('li');
         this.list_clone = $(this.list).clone();
     };
     Hanafuda.prototype.reset = function(){
-        this.list = $(this.target).find('li');
-        this.list_clone = $(this.list).clone();
-        this.list_unselected = [];
-        this.drugging = null;
-        if(this.suggesting.target !== null) this.suggesting.target.remove();
-        this.suggesting = { target : null, index : -1 };
+        this.reset_list();
+        this.list_stack = [];
+        this.is_drugging = false;
     };
     $.fn.hanafuda = function(){
         return new Hanafuda(this, {});
