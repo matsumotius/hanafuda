@@ -66,7 +66,7 @@
         this.drugging = {};
         this.suggesting = { target : null, index : -1 };
 
-        this.view.make_unselectable(this.list);
+        this.view.make_unselectable(this.target);
         var that = this;
         $(this.target).find('li').live('mousedown', function(e){
             that.grab(this, e);
