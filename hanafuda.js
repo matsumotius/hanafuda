@@ -86,7 +86,8 @@
         this.drugging = { 
             target : _target, 
             index : $(this.list).index(_target), 
-            clone : $(_target).clone()
+            clone : $(_target).clone(),
+            point : { x : e.pageX - $(_target).offset().left, y : e.pageY - $(_target).offset().top }
         };
         var that = this;
         $.each($(this.target).find('li'), function(index, obj){
@@ -98,7 +99,7 @@
     };
     Hanafuda.prototype.move = function(target, e){
         if(this.is_drugging == false) return;
-        this.view.move(this.drugging.target, e.pageX, e.pageY);
+        this.view.move(this.drugging.target, e.pageX - this.drugging.point.x, e.pageY - this.drugging.point.y);
         this.suggest();
     };
     Hanafuda.prototype.release = function(target, e){
