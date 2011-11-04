@@ -1,25 +1,39 @@
 <html>
     <head>
         <title>hanafuda / demo</title>
-        <script type='text/javascript' src='./jquery-1.6.2.min.js'></script>
-        <script type='text/javascript' src='./hanafuda.js'></script>
+        <script type='text/javascript' src='../jquery-1.6.4.min.js'></script>
+        <script type='text/javascript' src='../hanafuda.js'></script>
         <script type='text/javascript'>
         <!--
         $(function(){
-            $('#list').find('li').css('cursor', 'pointer');
-            $('#list').find('li').css('height', '50px');
-            $('#list').hanafuda();
+            $('.list').find('li').css('cursor', 'pointer');
+            $('.list').find('li').css('height', '50px');
+            $('.list').css('width', '40%');
+            $('.list').css('float', 'left');
+            var left = $('#left').hanafuda();
+            var right = $('#right').hanafuda();
+            $('#join').click(function(e){
+                left.join(right);
+            });
         });
         -->
         </script>
     </head>
     <body>
       <br>
-      <ul id='list'>
+      <ul id='left' class="list">
         <li>a</li>
         <li>b</li>
         <li>c</li>
         <li>d</li>
       </ul>
+      <ul id="right" class="list">
+        <li>1</li>
+        <li>2</li>
+        <li>3</li>
+        <li>4</li>
+      </ul>
+      <br clear="all">
+      <button id="join">join</button>
     </body>
 </html>
