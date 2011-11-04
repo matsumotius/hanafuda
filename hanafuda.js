@@ -1,15 +1,20 @@
 // todo: next, prev
 (function($){
     var HanafudaManager = function(){
-        
+        this.list = [];
+    };
+    HanafudaManager.prototype.add = function(hanafuda){
+        if(this.list.indexOf(hanafuda) == -1) this.list.push(hanafuda);
+    };
+    HanafudaManager.prototype.join = function(a, b){
+
     };
     var manager = new HanafudaManager();
-
     var HanafudaView = function(_parent){
         this.__parent = _parent;
     };
     HanafudaView.prototype.make_unselectable = function(_target){
-        var target = $(_target).find('li');
+        var target = $(_target);
         target.css('user-select', 'none'); // CSS3
         target.css('-webkit-user-select', 'none'); // webkit
         target.css('-moz-user-select', 'none'); // firefox
@@ -66,6 +71,7 @@
         this.drugging = {};
         this.suggesting = { target : null, index : -1 };
 
+        this.view.make_unselectable(this.target);
         this.view.make_unselectable(this.list);
         var that = this;
         $(this.target).find('li').live('mousedown', function(e){
@@ -74,7 +80,7 @@
         $('body').live('mousemove', function(e){
             that.move(this, e);
         });
-        $(this.target).find('li').live('mouseup', function(e){
+        $('body').live('mouseup', function(e){
             that.release(this, e);
         });
     };
@@ -94,8 +100,8 @@
             if(that.drugging.index !== index) that.list_stack.push(obj);
         });
         this.view.make_drugging(_target, this.target);
-        this.suggest();
         this.is_drugging = true;
+        this.suggest();
     };
     Hanafuda.prototype.move = function(target, e){
         if(this.is_drugging == false) return;
@@ -122,16 +128,16 @@
         var suggesting_target = this.view.generate_suggestion({ height : height });
         var that = this;
         $.each(that.list_stack, function(index, obj) {
-            if($(obj).offset().top > offset.top && 
-               $(obj).offset().top < offset.top + height){
+            if($(obj).offset().top >= offset.top && 
+               $(obj).offset().top <= offset.top + height){
                 if(that.suggesting.index == index) return;
                 if(that.suggesting.target !== null) that.suggesting.target.remove();
                 $(that.list_stack[index]).before(suggesting_target);
                 that.suggesting = { target : suggesting_target, index : index };
             }
         });
-        if($(last_obj).offset().top + $(last_obj).height() > offset.top && 
-           $(last_obj).offset().top + $(last_obj).height() < offset.top + height){
+        if($(last_obj).offset().top + $(last_obj).height() >= offset.top && 
+           $(last_obj).offset().top + $(last_obj).height() <= offset.top + height){
             if(this.suggesting.index !== last_index) return;
             if(this.suggesting.target !== null) this.suggesting.target.remove();
             $(last_obj).after(suggesting_target);
@@ -147,8 +153,14 @@
         this.list_stack = [];
         this.is_drugging = false;
     };
+    Hanafuda.prototype.join = function(hanafuda){
+        if(manager.list.indexOf(hanafuda) == -1) return;
+        console.log(manager);
+    };
     $.fn.hanafuda = function(){
-        return new Hanafuda(this, {});
+        var hanafuda = new Hanafuda(this, {});
+        manager.add(hanafuda);
+        return hanafuda;
     };
 })(jQuery);
 
